@@ -241,6 +241,8 @@ class AdminViewPermissionAdminSite(admin.AdminSite):
         """
         SETTINGS_MODELS = getattr(settings, 'ADMIN_VIEW_PERMISSION_MODELS',
                                   None)
+        SETTINGS_EXCLUDE_MODELS = \
+            getattr(settings, 'ADMIN_VIEW_PERMISSION_EXCLUDE_MODELS', None)
 
         models = model_or_iterable
         if not isinstance(model_or_iterable, (tuple, list)):
@@ -256,6 +258,26 @@ class AdminViewPermissionAdminSite(admin.AdminSite):
                     model_name = model._meta.label
 
                 if model_name in SETTINGS_MODELS:
+                    if admin_class:
+                        admin_class = type(
+                            str('DynamicAdminViewPermissionModelAdmin'),
+                            (admin_class, AdminViewPermissionModelAdmin),
+                            dict(admin_class.__dict__))
+                    else:
+                        admin_class = AdminViewPermissionModelAdmin
+
+                super(AdminViewPermissionAdminSite, self).register([model],
+                                                                   admin_class,
+                                                                   **options)
+        elif SETTINGS_EXCLUDE_MODELS:
+            for model in models:
+                if django_version() == DjangoVersion.DJANGO_18:
+                    model_name = '%s.%s' % (model._meta.app_label,
+                                            model._meta.object_name)
+                elif django_version() > DjangoVersion.DJANGO_18:
+                    model_name = model._meta.label
+
+                if model_name not in SETTINGS_EXCLUDE_MODELS:
                     if admin_class:
                         admin_class = type(
                             str('DynamicAdminViewPermissionModelAdmin'),

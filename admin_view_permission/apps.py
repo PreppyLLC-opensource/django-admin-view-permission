@@ -1,5 +1,6 @@
 from __future__ import unicode_literals
 
+from django.core.exceptions import ImproperlyConfigured
 from django.apps import apps as global_apps
 from django.apps import AppConfig
 from django.conf import settings
@@ -14,6 +15,8 @@ from .utils import django_version
 def update_permissions(sender, app_config, verbosity, apps=global_apps,
                        **kwargs):
     settings_models = getattr(settings, 'ADMIN_VIEW_PERMISSION_MODELS', None)
+    settings_exclude_models =\
+        getattr(settings, 'ADMIN_VIEW_PERMISSION_EXCLUDE_MODELS', None)
 
     # TODO: Maybe look at the registry not in all models
     for app in apps.get_app_configs():
@@ -33,6 +36,19 @@ def update_permissions(sender, app_config, verbosity, apps=global_apps,
                     model._meta.permissions += (
                         (view_permission,
                          'Can view %s' % model._meta.model_name),)
+            elif settings_exclude_models:
+                if django_version() == DjangoVersion.DJANGO_18:
+                    model_name = '%s.%s' % (model._meta.app_label,
+                                            model._meta.object_name)
+                elif django_version() > DjangoVersion.DJANGO_18:
+                    model_name = model._meta.label
+
+                if model_name not in settings_exclude_models \
+                        and view_permission not in \
+                                [perm[0] for perm in model._meta.permissions]:
+                    model._meta.permissions += (
+                        (view_permission,
+                         'Can view %s' % model._meta.model_name),)
             else:
                 if view_permission not in [perm[0] for perm in
                                            model._meta.permissions]:
@@ -45,6 +61,17 @@ class AdminViewPermissionConfig(AppConfig):
     name = 'admin_view_permission'
 
     def ready(self):
+        SETTINGS_MODELS = \
+            getattr(settings, 'ADMIN_VIEW_PERMISSION_MODELS', None)
+        SETTINGS_EXCLUDE_MODELS = \
+            getattr(settings, 'ADMIN_VIEW_PERMISSION_EXCLUDE_MODELS', None)
+        if SETTINGS_MODELS is not None \
+                and SETTINGS_EXCLUDE_MODELS is not None:
+            raise ImproperlyConfigured(
+                "ADMIN_VIEW_PERMISSION_MODELS "
+                "and ADMIN_VIEW_PERMISSION_EXCLUDE_MODELS "
+                "can't be defined at the same time")
+
         if not isinstance(admin.site, AdminViewPermissionAdminSite):
             admin.site = AdminViewPermissionAdminSite('admin')
             admin.sites.site = admin.site
