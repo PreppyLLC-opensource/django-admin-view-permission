@@ -850,7 +850,9 @@ class TestAdminViewPermissionAdminSite(SimpleTestCase):
         assert isinstance(self.admin_site._registry[TestModel1],
                           AdminViewPermissionModelAdmin)
 
-    @override_settings(ADMIN_VIEW_PERMISSION_EXCLUDE_MODELS=['test_app.TestModel1', ])
+    @override_settings(
+        ADMIN_VIEW_PERMISSION_EXCLUDE_MODELS=['test_app.TestModel1', ]
+    )
     def test_register_10(self):
         self.admin_site.register(TestModel1)
         assert not isinstance(self.admin_site._registry[TestModel1],

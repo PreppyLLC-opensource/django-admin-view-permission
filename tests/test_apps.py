@@ -125,7 +125,7 @@ class TestAdminViewPermissionConfig(TestCase):
     @override_settings(
         ADMIN_VIEW_PERMISSION_EXCLUDE_MODELS=None
     )
-    def test_ready_with_none(self):
+    def test_ready_excluded_with_none(self):
         self.trigger_signal()
         self.assertEqual(self.model1._meta.permissions,
                          [('view_apptestmodel1', 'Can view apptestmodel1'), ])
@@ -135,7 +135,7 @@ class TestAdminViewPermissionConfig(TestCase):
     @override_settings(
         ADMIN_VIEW_PERMISSION_EXCLUDE_MODELS=['test_app.AppTestModel3', ]
     )
-    def test_ready_with_other_permissions(self):
+    def test_ready_excluded_with_other_permissions(self):
         self.trigger_signal()
         self.assertEqual(
             self.model3._meta.permissions,
@@ -145,7 +145,7 @@ class TestAdminViewPermissionConfig(TestCase):
     @override_settings(
         ADMIN_VIEW_PERMISSION_EXCLUDE_MODELS=[]
     )
-    def test_ready_with_other_permissions_and_with_none(self):
+    def test_ready_excluded_with_other_permissions_and_with_none(self):
         self.trigger_signal()
         self.assertEqual(self.model3._meta.permissions,
                          ((u'copy_apptestmodel3', u'Can copy apptestmodel3'),
