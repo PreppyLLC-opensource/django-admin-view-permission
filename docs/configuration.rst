@@ -16,6 +16,24 @@ Example
 ::
 
      ADMIN_VIEW_PERMISSION_MODELS = [
-         auth.User,
+         'auth.User',
          ...
      ]
+
+ADMIN_VIEW_PERMISSION_EXCLUDE_MODELS
+------------------------------------
+
+You can also use another setting in which you can provide models which
+you want to be excluded from the view permission. The view permission will be
+applied to all the models except those listed in this list.
+
+Example
+~~~~~~~
+::
+
+    ADMIN_VIEW_PERMISSION_EXCLUDE_MODELS = [
+        'auth.User',
+        ...
+    ]
+
+:warning: You can't use both settings at the same time.

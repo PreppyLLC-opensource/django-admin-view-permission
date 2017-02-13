@@ -12,8 +12,7 @@ from django.utils.encoding import force_text
 from django.utils.text import capfirst
 from django.utils.translation import ugettext as _
 
-from .enums import DjangoVersion
-from .utils import django_version
+from admin_view_permission.utils import get_model_name
 
 
 class AdminViewPermissionChangeList(ChangeList):
@@ -241,45 +240,41 @@ class AdminViewPermissionAdminSite(admin.AdminSite):
         """
         SETTINGS_MODELS = getattr(settings, 'ADMIN_VIEW_PERMISSION_MODELS',
                                   None)
+        SETTINGS_EXCLUDE_MODELS = \
+            getattr(settings, 'ADMIN_VIEW_PERMISSION_EXCLUDE_MODELS', None)
 
         models = model_or_iterable
         if not isinstance(model_or_iterable, (tuple, list)):
             models = tuple([model_or_iterable])
 
-        if SETTINGS_MODELS or (SETTINGS_MODELS is not None and len(
-                SETTINGS_MODELS) == 0):
-            for model in models:
-                if django_version() == DjangoVersion.DJANGO_18:
-                    model_name = '%s.%s' % (model._meta.app_label,
-                                            model._meta.object_name)
-                elif django_version() > DjangoVersion.DJANGO_18:
-                    model_name = model._meta.label
-
+        for model in models:
+            model_name = get_model_name(model)
+            if SETTINGS_MODELS or (SETTINGS_MODELS is not None and len(
+                    SETTINGS_MODELS) == 0):
                 if model_name in SETTINGS_MODELS:
-                    if admin_class:
-                        admin_class = type(
-                            str('DynamicAdminViewPermissionModelAdmin'),
-                            (admin_class, AdminViewPermissionModelAdmin),
-                            dict(admin_class.__dict__))
-                    else:
-                        admin_class = AdminViewPermissionModelAdmin
+                    admin_class = self.replace_admin_class(admin_class)
 
-                super(AdminViewPermissionAdminSite, self).register([model],
-                                                                   admin_class,
-                                                                   **options)
-        else:
-            if admin_class:
-                admin_class = type(str('DynamicAdminViewPermissionModelAdmin'),
-                                   (
-                                       admin_class,
-                                       AdminViewPermissionModelAdmin),
-                                   dict(admin_class.__dict__))
+            elif SETTINGS_EXCLUDE_MODELS:
+                if model_name not in SETTINGS_EXCLUDE_MODELS:
+                    admin_class = self.replace_admin_class(admin_class)
+
             else:
-                admin_class = AdminViewPermissionModelAdmin
+                admin_class = self.replace_admin_class(admin_class)
 
-            super(AdminViewPermissionAdminSite, self).register(
-                model_or_iterable,
-                admin_class, **options)
+            super(AdminViewPermissionAdminSite, self).register([model],
+                                                               admin_class,
+                                                               **options)
+
+    @staticmethod
+    def replace_admin_class(admin_class):
+        if admin_class:
+            admin_class = type(
+                str('DynamicAdminViewPermissionModelAdmin'),
+                (admin_class, AdminViewPermissionModelAdmin),
+                dict(admin_class.__dict__))
+        else:
+            admin_class = AdminViewPermissionModelAdmin
+        return admin_class
 
     def _build_app_dict(self, request, label=None):
         """
